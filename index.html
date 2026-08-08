@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>React Native Animations — Interview Field Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root{
+    --bg: #090c12;
+    --surface: #10151f;
+    --surface-2: #141a26;
+    --border: #1e2633;
+    --border-soft: #171d29;
+    --text: #e7ebf3;
+    --text-dim: #8b95a9;
+    --text-faint: #5b6478;
+    --js: #ffff;       /* JS thread accent */
+    --ui: #ffff;       /* UI / Native thread accent */
+    --amber: #ffff;    /* senior-tip accent */
+    --js-glow: #ffff;
+    --ui-glow: #ffff;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --sans: 'Inter', -apple-system, sans-serif;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, var(--js-glow), transparent 60%),
+      radial-gradient(ellipse 900px 500px at 85% 0%, var(--ui-glow), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  ::selection{ background:var(--js); color:#0a0a0a; }
+
+  /* ---------- progress bar ---------- */
+  #progress{
+    position:fixed; top:0; left:0; height:3px; width:0%;
+    background:linear-gradient(90deg, var(--js), var(--ui));
+    z-index:999; transition:width .08s linear;
+  }
+
+  /* ---------- top bar ---------- */
+  header.top{
+    position:sticky; top:0; z-index:50;
+    backdrop-filter:blur(14px);
+    background:rgba(9,12,18,0.82);
+    border-bottom:1px solid var(--border-soft);
+    padding:16px 28px;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:16px;
+  }
+  header.top .brand{
+    display:flex; align-items:center; gap:12px;
+    font-family:var(--mono); font-weight:700; letter-spacing:.02em;
+  }
+  .bridge-dot{
+    width:10px; height:10px; border-radius:50%;
+    background:linear-gradient(90deg,var(--js),var(--ui));
+    box-shadow:0 0 12px #ffff;
+    flex-shrink:0;
+  }
+  header.top .brand small{
+    display:block; color:var(--text-faint); font-weight:400; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  }
+  header.top nav{display:flex; gap:6px; font-family:var(--mono); font-size:12px;}
+  header.top nav a{
+    color:var(--text-dim); text-decoration:none; padding:6px 10px; border-radius:6px;
+    border:1px solid transparent; transition:.15s;
+  }
+  header.top nav a:hover{ color:var(--text); border-color:var(--border); background:var(--surface); }
+
+  /* ---------- hero ---------- */
+  .hero{
+    max-width:980px; margin:0 auto; padding:88px 28px 56px;
+  }
+  .hero .eyebrow{
+    font-family:var(--mono); font-size:12px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--ui); display:flex; align-items:center; gap:10px; margin-bottom:22px;
+  }
+  .hero .eyebrow::before{ content:'›'; color:var(--js); font-weight:800; }
+  .hero h1{
+    font-family:var(--mono); font-weight:800; font-size:clamp(32px,5vw,54px);
+    line-height:1.08; letter-spacing:-.02em; margin-bottom:20px;
+  }
+  .hero h1 .grad{
+    background:linear-gradient(90deg,var(--js),var(--ui));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .hero p.lede{ color:var(--text-dim); font-size:17px; max-width:640px; margin-bottom:32px; }
+
+  .thread-diagram{
+    display:flex; align-items:center; gap:0; font-family:var(--mono); font-size:12px;
+    border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--surface);
+  }
+  .thread-diagram .lane{ flex:1; padding:14px 18px; display:flex; align-items:center; gap:10px; }
+  .thread-diagram .lane.js{ background:linear-gradient(90deg, #ffff, transparent); border-right:1px solid var(--border); }
+  .thread-diagram .lane.ui{ background:linear-gradient(90deg, transparent, rgba(72,211,217,.10)); }
+  .thread-diagram .dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .thread-diagram .dot.js{ background:var(--js); }
+  .thread-diagram .dot.ui{ background:var(--ui); }
+  .thread-diagram .lane b{ color:var(--text); }
+  .thread-diagram .lane span{ color:var(--text-faint); }
+
+  /* ---------- layout ---------- */
+  .layout{
+    max-width:1180px; margin:0 auto; padding:0 28px 120px;
+    display:grid; grid-template-columns:230px 1fr; gap:48px;
+  }
+
+  aside.toc{ position:sticky; top:76px; align-self:start; max-height:calc(100vh - 100px); overflow-y:auto; padding-bottom:20px;}
+  aside.toc::-webkit-scrollbar{width:4px;}
+  aside.toc::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
+  aside.toc .toc-title{ font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint); margin-bottom:14px; }
+  aside.toc ol{ list-style:none; counter-reset:sec; display:flex; flex-direction:column; gap:2px;}
+  aside.toc li{ counter-increment:sec; }
+  aside.toc a{
+    display:flex; gap:10px; align-items:baseline; text-decoration:none; color:var(--text-dim);
+    font-size:13px; padding:8px 10px; border-radius:8px; border-left:2px solid transparent; transition:.15s;
+  }
+  aside.toc a::before{
+    content: counter(sec, decimal-leading-zero); font-family:var(--mono); font-size:11px; color:var(--text-faint);
+  }
+  aside.toc a:hover, aside.toc a.active{ color:var(--text); background:var(--surface); border-left-color:var(--js); }
+
+  main{ min-width:0; }
+
+  section.block{ margin-bottom:64px; scroll-margin-top:80px; }
+  section.block .sec-head{ display:flex; align-items:baseline; gap:14px; margin-bottom:26px; }
+  section.block .sec-num{
+    font-family:var(--mono); font-size:13px; color:var(--bg); background:linear-gradient(120deg,var(--js),var(--ui));
+    padding:4px 10px; border-radius:6px; font-weight:700;
+  }
+  section.block h2{ font-family:var(--mono); font-size:22px; letter-spacing:-.01em; }
+  section.block .sec-desc{ color:var(--text-faint); font-size:13px; margin-top:6px; margin-left:52px;}
+
+  .qa{
+    border:1px solid var(--border); background:var(--surface);
+    border-radius:14px; padding:22px 24px; margin-bottom:16px;
+    border-left:3px solid var(--border);
+    transition:border-color .2s;
+  }
+  .qa:hover{ border-left-color:var(--js); }
+  .qa .q{
+    display:flex; gap:12px; font-family:var(--mono); font-weight:600; font-size:15px; color:var(--text);
+    margin-bottom:12px;
+  }
+  .qa .q .qnum{ color:var(--js); flex-shrink:0; }
+  .qa .a{ color:var(--text-dim); font-size:14.5px; }
+  .qa .a p{ margin-bottom:10px; }
+  .qa .a p:last-child{ margin-bottom:0; }
+  .qa .a strong{ color:var(--text); font-weight:600; }
+  .qa .a code{
+    font-family:var(--mono); font-size:13px; background:var(--surface-2); color:var(--ui);
+    padding:1px 6px; border-radius:4px; border:1px solid var(--border);
+  }
+  .qa .a ul{ margin:8px 0 8px 20px; }
+  .qa .a li{ margin-bottom:5px; }
+
+  pre{
+    font-family:var(--mono); font-size:12.5px; background:#0c1017; border:1px solid var(--border);
+    border-radius:10px; padding:14px 16px; overflow-x:auto; margin:10px 0; color:#c3cbdb;
+    line-height:1.55;
+  }
+  pre .c1{ color:var(--text-faint); }
+  pre .kw{ color:var(--js); }
+  pre .fn{ color:var(--ui); }
+  pre .str{ color:#ffff; }
+
+  .tip{
+    display:flex; gap:10px; align-items:flex-start; background:rgba(255,180,84,0.06);
+    border:1px solid #ffff; border-radius:10px; padding:12px 14px; margin-top:12px; font-size:13.5px;
+  }
+  .tip .tag{
+    font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--amber); border:1px solid #ffff; padding:2px 7px; border-radius:5px; flex-shrink:0; margin-top:1px;
+  }
+  .tip p{ color:#d8c9ad; }
+
+  .diagram-box{
+    font-family:var(--mono); font-size:12.5px; background:#0c1017; border:1px solid var(--border);
+    border-radius:10px; padding:16px 18px; margin:10px 0; color:var(--text-dim);
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .diagram-box .step{ display:flex; align-items:center; gap:10px; }
+  .diagram-box .arrow{ color:var(--text-faint); padding-left:8px; }
+  .diagram-box .step b{ color:var(--ui); }
+  .diagram-box .step.js b{ color:var(--js); }
+
+  footer{
+    max-width:1180px; margin:0 auto; padding:40px 28px 80px; text-align:center;
+    color:var(--text-faint); font-family:var(--mono); font-size:12px; border-top:1px solid var(--border-soft);
+  }
+  footer .bridge-line{
+    height:2px; width:120px; margin:0 auto 20px; border-radius:2px;
+    background:linear-gradient(90deg,var(--js),var(--ui));
+  }
+
+  @media (max-width:900px){
+    .layout{ grid-template-columns:1fr; }
+    aside.toc{ position:static; max-height:none; }
+    .thread-diagram{ flex-direction:column; }
+    .thread-diagram .lane.js{ border-right:none; border-bottom:1px solid var(--border); }
+    section.block .sec-desc{ margin-left:0; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    *{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<header class="top">
+  <div class="brand">
+    <span class="bridge-dot"></span>
+    <div>
+      RN.ANIMATIONS
+      <small>Interview Field Guide</small>
+    </div>
+  </div>
+  <nav>
+    <a href="#s1">Fundamentals</a>
+    <a href="#s2">Performance</a>
+    <a href="#s3">Reanimated</a>
+    <a href="#s4">Gestures</a>
+    <a href="#s5">Scenarios</a>
+    <a href="#s6">Architecture</a>
+  </nav>
+</header>
+
+<div class="hero">
+  <div class="eyebrow">40 questions · JS thread ↔ UI thread</div>
+  <h1>React Native <span class="grad">Animations</span><br>Interview Field Guide</h1>
+  <p class="lede">Everything from <code style="background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:4px;color:var(--ui);font-family:var(--mono);font-size:13px;">Animated.timing</code> basics to lead-level architecture decisions — organized the way a senior interview actually escalates.</p>
+
+  <div class="thread-diagram">
+    <div class="lane js"><span class="dot js"></span><span><b>JS Thread</b> — state, logic, gesture callbacks</span></div>
+    <div class="lane ui"><span class="dot ui"></span><span><b>UI Thread</b> — native driver, worklets, 60fps rendering</span></div>
+  </div>
+</div>
+
+<div class="layout">
+
+  <aside class="toc">
+    <div class="toc-title">Sections</div>
+    <ol>
+      <li><a href="#s1">Fundamentals</a></li>
+      <li><a href="#s2">Performance</a></li>
+      <li><a href="#s3">Reanimated</a></li>
+      <li><a href="#s4">Gestures</a></li>
+      <li><a href="#s5">Real-world Scenarios</a></li>
+      <li><a href="#s6">Architecture / Lead</a></li>
+    </ol>
+  </aside>
+
+  <main>
+
+    <!-- ===================== SECTION 1 ===================== -->
+    <section class="block" id="s1">
+      <div class="sec-head">
+        <span class="sec-num">01</span>
+        <h2>Fundamentals</h2>
+      </div>
+      <div class="sec-desc">The core mental model before anything else.</div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q1.</span> Explain the React Native Animated API and how an animation progresses from start to finish.</div>
+        <div class="a">
+          <p><code>Animated</code> is a declarative system built around <strong>Animated.Value</strong> — a mutable number container that React components subscribe to without re-rendering on every tick.</p>
+          <p>The lifecycle: you create a value, wire it into a style via <code>interpolate</code> or directly, call an animation function (<code>timing</code>/<code>spring</code>/<code>decay</code>), and call <code>.start()</code>. Internally it schedules updates every frame (via <code>requestAnimationFrame</code> on JS, or entirely on the UI thread when native-driven), pushing new values to the connected view until the end condition is met, then invokes the completion callback with <code>{ finished: true }</code>.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q2.</span> Difference between Animated.timing, spring, and decay?</div>
+        <div class="a">
+          <ul>
+            <li><strong>timing</strong> — moves from A to B over a fixed <code>duration</code> using an easing curve. Predictable, deterministic.</li>
+            <li><strong>spring</strong> — physics-based, driven by <code>tension</code>/<code>friction</code> (or <code>stiffness</code>/<code>damping</code>). No fixed duration; it settles naturally, ideal for gesture-driven UI that should feel alive.</li>
+            <li><strong>decay</strong> — starts with a <code>velocity</code> and gradually slows via a <code>deceleration</code> factor until it stops. Used for momentum/fling effects, e.g. after a swipe release.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q3.</span> What is Animated.Value vs Animated.ValueXY?</div>
+        <div class="a">
+          <p><code>Animated.Value</code> holds a single scalar (opacity, single-axis translate). <code>Animated.ValueXY</code> is a convenience wrapper holding two <code>Animated.Value</code>s (<code>x</code> and <code>y</code>) as one object — useful for 2D drag/pan gestures so you don't juggle two separate values, and it exposes helpers like <code>getLayout()</code> and <code>getTranslateTransform()</code>.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q4.</span> What does useNativeDriver: true actually do?</div>
+        <div class="a">
+          <p>It serializes the animation configuration (start/end values, easing, duration) once and hands it off to the native side (via the old bridge or the new JSI-backed runtime). From that point, every frame is computed and applied directly on the <strong>UI thread</strong> using native animation APIs (Core Animation on iOS, the animation framework on Android) — completely bypassing the JS thread per-frame. That's why it stays smooth even if JS is busy or blocked.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q5.</span> Which properties can and cannot be animated using the native driver?</div>
+        <div class="a">
+          <p><strong>Can:</strong> transform properties — <code>translateX/Y</code>, <code>scale</code>, <code>scaleX/Y</code>, <code>rotate</code> — plus <code>opacity</code>. These don't affect layout, so the native side can apply them without touching Yoga/layout.</p>
+          <p><strong>Cannot:</strong> layout properties — <code>width</code>, <code>height</code>, <code>top</code>, <code>left</code>, <code>margin</code>, <code>flex</code> — because changing them requires re-running layout, which only the JS/Shadow thread can trigger. Animating these forces you off the native driver, or requires a transform-based workaround.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q6.</span> What is interpolation? Give a real-world example.</div>
+        <div class="a">
+          <p>Interpolation maps an input range to an output range — letting one driving value control multiple visual properties, including non-numeric ones like colors or rotation strings.</p>
+          <pre>const rotate = scrollY.interpolate({
+  <span class="kw">inputRange</span>: [0, 100],
+  <span class="kw">outputRange</span>: [<span class="str">'0deg'</span>, <span class="str">'180deg'</span>],
+  <span class="kw">extrapolate</span>: <span class="str">'clamp'</span>,
+});</pre>
+          <p>Real example: a pull-to-refresh spinner where scroll offset <code>0→100</code> drives icon rotation <code>0deg→180deg</code>, and simultaneously opacity <code>0→1</code> — one value, multiple derived outputs.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q7.</span> How would you create a fade-in + slide-up animation?</div>
+        <div class="a">
+          <pre>const opacity = <span class="fn">useRef</span>(<span class="kw">new</span> Animated.Value(0)).current;
+const translateY = <span class="fn">useRef</span>(<span class="kw">new</span> Animated.Value(20)).current;
+
+<span class="fn">useEffect</span>(() => {
+  Animated.parallel([
+    Animated.timing(opacity, { <span class="kw">toValue</span>: 1, <span class="kw">duration</span>: 300, <span class="kw">useNativeDriver</span>: <span class="kw">true</span> }),
+    Animated.timing(translateY, { <span class="kw">toValue</span>: 0, <span class="kw">duration</span>: 300, <span class="kw">useNativeDriver</span>: <span class="kw">true</span> }),
+  ]).start();
+}, []);
+
+<span class="c1">// style: { opacity, transform: [{ translateY }] }</span></pre>
+          <p>Both properties are transform/opacity, so both stay eligible for the native driver, running in true parallel on the UI thread.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q8.</span> How do you sequence or run multiple animations in parallel?</div>
+        <div class="a">
+          <ul>
+            <li><code>Animated.sequence([a, b, c])</code> — runs one after another.</li>
+            <li><code>Animated.parallel([a, b])</code> — runs simultaneously.</li>
+            <li><code>Animated.stagger(100, [a, b, c])</code> — parallel, but each starts with a delay offset — good for list-item entrance effects.</li>
+          </ul>
+          <p>All three are composable — you can nest a <code>parallel</code> inside a <code>sequence</code> step.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== SECTION 2 ===================== -->
+    <section class="block" id="s2">
+      <div class="sec-head">
+        <span class="sec-num">02</span>
+        <h2>Performance — Senior Level</h2>
+      </div>
+      <div class="sec-desc">Where interviews start probing for real production experience.</div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q9.</span> Your animation drops frames whenever an API response is processed. How would you debug and fix it?</div>
+        <div class="a">
+          <p><strong>Debug:</strong> open Flipper/Perf Monitor, watch the JS FPS graph vs UI FPS graph during the response handling — if only JS FPS dips, the culprit is synchronous work on that thread (JSON parsing, large state updates, re-renders), not the animation itself.</p>
+          <p><strong>Fix:</strong> confirm the animation is running with <code>useNativeDriver: true</code> so it's immune to the JS stall; move heavy parsing/transformation off the critical path (chunk it, defer with <code>InteractionManager.runAfterInteractions</code>, or offload to a worker); avoid triggering large re-renders synchronously with the response — batch or debounce state updates.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q10.</span> Explain the relationship between the JS thread, UI thread, and animation performance.</div>
+        <div class="a">
+          <div class="diagram-box">
+            <div class="step js"><b>JS Thread</b> — runs your React logic, event handlers, state, network calls</div>
+            <div class="arrow">↕ bridge / JSI</div>
+            <div class="step">Shadow Thread — computes layout via Yoga</div>
+            <div class="arrow">↕</div>
+            <div class="step"><b>UI Thread</b> — actually draws each frame, must hit 60/120fps</div>
+          </div>
+          <p>Animations look janky whenever the thread responsible for producing the next frame is blocked. Native-driven animations run entirely on the UI thread, so they survive a busy JS thread. Non-native-driven animations depend on the JS thread computing and sending each frame's value across the bridge — any JS-side blocking work directly causes dropped frames.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q11.</span> Why can an animation still lag even when useNativeDriver: true?</div>
+        <div class="a">
+          <ul>
+            <li>The UI thread itself is overloaded — too many simultaneous native animations, heavy view hierarchies, or expensive shadow/layout work competing for the same thread.</li>
+            <li>The animated property triggers layout recalculation indirectly (e.g. an <code>Image</code> resizing).</li>
+            <li>Bridging overhead at animation <em>start</em> — the initial config serialization and any listener callbacks (<code>.addListener</code>) still cross to JS every frame, which reintroduces bridge cost.</li>
+            <li>Large images decoding, heavy shadows/blur, or high view count causing GPU-side (not thread-side) rendering bottlenecks.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q12.</span> How would you identify whether jank is caused by JS, UI rendering, or excessive layout work?</div>
+        <div class="a">
+          <ul>
+            <li><strong>Perf Monitor / Flipper</strong> — two separate FPS graphs for JS and UI; a drop in only one narrows the cause immediately.</li>
+            <li><strong>Systrace / Android Studio Profiler</strong> — shows time spent in layout passes vs draw calls vs JS execution.</li>
+            <li><strong>Hermes sampling profiler</strong> — flags expensive JS functions running during the animation window.</li>
+            <li>Manually toggle <code>useNativeDriver</code> or temporarily strip layout-affecting props to isolate the variable.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q13.</span> What happens if you update React state on every animation frame?</div>
+        <div class="a">
+          <p>Every state update triggers a re-render, reconciliation, and (potentially) a new layout pass — all on the JS/Shadow thread, at up to 60 times a second. This is precisely what <code>Animated</code>/<code>Reanimated</code> are designed to avoid: they mutate values imperatively and push them straight to the native view, never touching React's render cycle. Doing this manually with <code>setState</code> reliably tanks FPS and is a common junior-level anti-pattern.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q14.</span> How would you optimize animations in a list containing 500+ items?</div>
+        <div class="a">
+          <ul>
+            <li>Use <code>FlatList</code>/<code>FlashList</code> with <code>windowSize</code>, <code>maxToRenderPerBatch</code>, and <code>getItemLayout</code> tuned so off-screen items never enter the render/animation pipeline.</li>
+            <li>Animate with the native driver so per-item transforms don't hit JS.</li>
+            <li>Memoize row components (<code>React.memo</code>) so an animation on one row doesn't re-render siblings.</li>
+            <li>For entrance effects use <code>Animated.stagger</code> only on visible items, not the whole dataset.</li>
+            <li>Prefer Reanimated for list item animations since shared values live off the JS thread entirely, sidestepping re-render cost altogether.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q15.</span> How can excessive re-renders affect animations?</div>
+        <div class="a">
+          <p>Every re-render forces reconciliation of the component subtree, which competes for the same JS thread that non-native-driven animations depend on to compute frames — and can even interrupt native-driven animations if it triggers layout thrash. Practically: an animating component wrapped in a parent that re-renders on every keystroke or every socket message will visibly stutter, even though the animation "shouldn't" care about React state at all.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== SECTION 3 ===================== -->
+    <section class="block" id="s3">
+      <div class="sec-head">
+        <span class="sec-num">03</span>
+        <h2>Reanimated</h2>
+      </div>
+      <div class="sec-desc">The library senior candidates are expected to know deeply, not just recognize.</div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q16.</span> Why would you choose Reanimated over the React Native Animated API?</div>
+        <div class="a">
+          <p>Reanimated runs animation <em>and</em> gesture-response logic entirely on the UI thread via worklets — not just the final interpolated frame like <code>useNativeDriver</code> does. That means you can write conditional, stateful animation logic (not just start/end value transitions) that never round-trips to JS. It also supports animating layout-affecting properties (via the Layout Animations API), which the classic native driver can't do, and gives synchronous, jank-free response to gestures.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q17.</span> Explain Shared Values in Reanimated.</div>
+        <div class="a">
+          <p>A <strong>shared value</strong> (created with <code>useSharedValue</code>) is a mutable container accessible from <em>both</em> the JS and UI thread simultaneously, backed by the same underlying memory via JSI. Reading/writing <code>.value</code> doesn't trigger a React re-render — it's the Reanimated equivalent of <code>Animated.Value</code>, but with direct, synchronous cross-thread access instead of a serialized bridge hop.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q18.</span> What is a worklet?</div>
+        <div class="a">
+          <p>A worklet is a small JavaScript function marked (implicitly by Babel plugin, or explicitly with <code>'worklet'</code>) so Reanimated can extract, serialize, and run it directly on the UI thread's own JS runtime — independent of the main JS thread. It's the mechanism that lets your animation/gesture logic execute without crossing the bridge on every frame.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q19.</span> Where does a Reanimated worklet execute?</div>
+        <div class="a">
+          <p>On a <strong>separate, secondary JavaScript runtime that lives on the UI thread</strong> — not the main JS thread, and not literally "native code." Reanimated spins up this UI-thread JS runtime via JSI so worklets can run alongside frame rendering with no bridge serialization cost.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q20.</span> Difference between useSharedValue, useDerivedValue, and useAnimatedStyle.</div>
+        <div class="a">
+          <ul>
+            <li><code>useSharedValue</code> — creates the raw mutable value itself.</li>
+            <li><code>useDerivedValue</code> — creates a <em>read-only</em> value computed from one or more shared values, automatically recalculated (on the UI thread) whenever a dependency changes. Used for derived state, not for styling directly.</li>
+            <li><code>useAnimatedStyle</code> — a worklet that returns a style object built from shared/derived values; Reanimated applies it directly to the native view every frame, bypassing React's render cycle entirely.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q21.</span> What is the purpose of runOnJS?</div>
+        <div class="a">
+          <p>Worklets run on the UI thread and can't directly call regular JS-thread functions (e.g. <code>setState</code>, navigation, analytics, network calls). <code>runOnJS(fn)(args)</code> schedules that function to run back on the main JS thread — it's the deliberate, explicit bridge back across threads.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q22.</span> Why should runOnJS be used carefully?</div>
+        <div class="a">
+          <p>Every call re-introduces cross-thread communication — the exact cost Reanimated exists to avoid. Calling it every frame (e.g. inside <code>onActive</code> of a pan gesture to update React state continuously) reproduces the same jank you'd get from <code>setState</code>-per-frame in classic <code>Animated</code>. Best practice: keep the hot path (every-frame updates) purely in shared values/worklets, and only <code>runOnJS</code> at discrete moments — gesture end, threshold crossed, animation finished.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q23.</span> Difference between withTiming, withSpring, and withDecay.</div>
+        <div class="a">
+          <p>Direct worklet-thread equivalents of the classic API: <code>withTiming</code> = duration + easing curve, <code>withSpring</code> = physics-based settle (damping/stiffness), <code>withDecay</code> = velocity-driven deceleration. The key difference from <code>Animated</code> is these run and can be composed/chained (<code>withSequence</code>, <code>withRepeat</code>) entirely on the UI thread as plain worklet function calls, with no bridge hop per frame.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q24.</span> How does Reanimated avoid frequent JS ↔ native communication?</div>
+        <div class="a">
+          <p>Three mechanisms working together: (1) shared values live in memory accessible from both runtimes via JSI, no serialization needed to read/write; (2) worklets execute the actual animation/gesture math on the UI-thread runtime, so decisions happen where the frame is drawn; (3) <code>useAnimatedStyle</code> writes directly to the native view's props each frame without going through React's reconciler. The main JS thread is only touched when you explicitly opt in via <code>runOnJS</code>.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q25.</span> What happens when you access a normal JS variable inside a worklet?</div>
+        <div class="a">
+          <p>Worklets capture variables from the enclosing JS-thread closure by <strong>value</strong> at the time the worklet is created (Babel serializes the closure). So reading a plain variable gives you a snapshot, not a live reference — and writing to it inside the worklet does <em>not</em> propagate back to the JS thread. This is exactly why shared values exist: they're the one type of "variable" that's genuinely synchronized across both runtimes.</p>
+          <div class="tip"><span class="tag">Gotcha</span><p>Mutating a captured plain object/array inside a worklet silently does nothing useful on the JS side — a classic interview trap question.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== SECTION 4 ===================== -->
+    <section class="block" id="s4">
+      <div class="sec-head">
+        <span class="sec-num">04</span>
+        <h2>Gesture + Animation</h2>
+      </div>
+      <div class="sec-desc">Where Reanimated and react-native-gesture-handler meet.</div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q26.</span> How would you implement a swipe-to-delete interaction?</div>
+        <div class="a">
+          <p>Wrap the row in a <code>Gesture.Pan()</code>, drive a shared value <code>translateX</code> directly from <code>event.translationX</code> in <code>onUpdate</code>. On <code>onEnd</code>, check translation against a threshold (and/or velocity): past it, animate off-screen with <code>withTiming</code> and call an <code>onDelete</code> callback via <code>runOnJS</code> once finished; under it, spring back to zero with <code>withSpring</code>. Pair with <code>useAnimatedStyle</code> for the transform and often an interpolated background color/icon opacity for delete-affordance feedback.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q27.</span> How would you build a draggable bottom sheet?</div>
+        <div class="a">
+          <p>A shared value <code>translateY</code> tracks sheet position, clamped between an open and closed offset. A pan gesture updates it directly on drag; <code>onEnd</code> compares final position + velocity against snap points and animates to the nearest one with <code>withSpring</code>. Backdrop opacity is a <code>useDerivedValue</code> interpolation of the same <code>translateY</code>, so it's perfectly in sync with zero extra state. For production, reaching for <code>@gorhom/bottom-sheet</code> (built on Reanimated + Gesture Handler) is usually the pragmatic answer over a from-scratch build.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q28.</span> How would you implement a Tinder-style swipe card?</div>
+        <div class="a">
+          <p>Track <code>translateX</code>/<code>translateY</code> shared values from a pan gesture; derive a rotation (<code>useDerivedValue</code>, interpolating <code>translateX</code> to a few degrees) so the card tilts as it moves — the signature feel. On release, compare horizontal distance/velocity to a threshold: past it, <code>withTiming</code> the card off-screen in that direction and trigger the next-card logic via <code>runOnJS</code>; otherwise <code>withSpring</code> back to center. Stack the next card underneath with a subtle scale/opacity interpolation driven by the top card's progress for a layered feel.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q29.</span> How do Gesture Handler and Reanimated work together?</div>
+        <div class="a">
+          <p>Gesture Handler recognizes native touch gestures on the UI thread and exposes their event stream. When gesture callbacks are written as worklets (the modern <code>Gesture.Pan().onUpdate(event => {'worklet'})</code> API), the entire gesture-to-animation pipeline — recognition, value update, style application — stays on the UI thread with zero bridge hops, which is what makes drag interactions feel perfectly attached to the finger.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q30.</span> How would you prevent a gesture from conflicting with a ScrollView?</div>
+        <div class="a">
+          <ul>
+            <li>Use Gesture Handler's composition APIs — <code>Gesture.Simultaneous</code>, <code>Gesture.Exclusive</code>, or <code>Gesture.Race</code> — to explicitly define which gesture wins in overlapping regions.</li>
+            <li>Constrain the custom gesture's activation area with <code>activeOffsetX</code>/<code>failOffsetY</code> so, e.g., a horizontal swipe only activates once horizontal movement clearly exceeds vertical, letting vertical drags fall through to the ScrollView.</li>
+            <li>Use <code>simultaneousHandlers</code>/<code>waitFor</code> refs to sequence recognition against the ScrollView's own pan responder.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q31.</span> How would you implement a swipe threshold?</div>
+        <div class="a">
+          <pre><span class="kw">const</span> SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
+
+.onEnd((event) => {
+  <span class="kw">const</span> shouldDismiss =
+    Math.abs(translateX.value) > SWIPE_THRESHOLD ||
+    Math.abs(event.velocityX) > 800;
+
+  <span class="kw">if</span> (shouldDismiss) {
+    translateX.value = withTiming(Math.sign(translateX.value) * SCREEN_WIDTH);
+  } <span class="kw">else</span> {
+    translateX.value = withSpring(0);
+  }
+});</pre>
+          <p>Good thresholds combine <strong>distance</strong> and <strong>velocity</strong> — a fast short flick should dismiss just as reliably as a slow long drag.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== SECTION 5 ===================== -->
+    <section class="block" id="s5">
+      <div class="sec-head">
+        <span class="sec-num">05</span>
+        <h2>Real-World Scenarios</h2>
+      </div>
+      <div class="sec-desc">Scenario-style questions that test applied judgment, not recall.</div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q32.</span> Video scrubber becomes jittery while dragging. How would you design it?</div>
+        <div class="a">
+          <p>Jitter here usually means the scrub position is round-tripping through React state (or the JS thread) on every pixel of movement. The fix is to keep the whole interaction on the UI thread:</p>
+          <div class="diagram-box">
+            <div class="step js">Gesture (Pan)</div>
+            <div class="arrow">↓</div>
+            <div class="step">Shared Value (scrub position)</div>
+            <div class="arrow">↓</div>
+            <div class="step">UI-thread animation (useAnimatedStyle)</div>
+            <div class="arrow">↓</div>
+            <div class="step">Animated thumb position</div>
+            <div class="arrow">↓</div>
+            <div class="step js">JS only when necessary (seek call, throttled)</div>
+          </div>
+          <p>The player's actual <code>seek()</code> call is expensive and shouldn't fire every frame — throttle it, or only call it via <code>runOnJS</code> on release (or at a coarse interval during drag), while the visual thumb tracks the finger at full frame rate purely through the shared value.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q33.</span> Bottom sheet that follows the finger and snaps open/closed on release based on velocity + position. How would you implement it?</div>
+        <div class="a">
+          <p>Same pan-gesture-drives-shared-value pattern as Q27/Q31, but the snap decision blends two signals rather than one:</p>
+          <pre>.onEnd((event) => {
+  <span class="kw">const</span> pastMidpoint = translateY.value > SHEET_HEIGHT / 2;
+  <span class="kw">const</span> flickingDown = event.velocityY > 500;
+  <span class="kw">const</span> flickingUp = event.velocityY < -500;
+
+  <span class="kw">const</span> shouldClose = flickingDown || (pastMidpoint && !flickingUp);
+  translateY.value = withSpring(shouldClose ? CLOSED_Y : OPEN_Y, { velocity: event.velocityY });
+});</pre>
+          <p>Passing the release <code>velocity</code> into <code>withSpring</code> is what makes the settle feel physically continuous with the drag, instead of visibly "restarting."</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q34.</span> An animation running during navigation occasionally freezes. What would you investigate?</div>
+        <div class="a">
+          <ul>
+            <li>Whether the animation is native-driven — non-native-driven animations are especially vulnerable to freezing during a navigation transition, which is itself JS-thread-heavy work (screen mount, context providers, effects firing).</li>
+            <li>Whether the navigator is unmounting/remounting the animating component mid-flight, killing the <code>Animated.Value</code> or shared value entirely rather than pausing it.</li>
+            <li>Whether <code>InteractionManager</code> interactions are queued and blocking, or the navigation library's own transition animation is competing for the same UI thread resources.</li>
+            <li>Whether heavy work (data fetching, large list rendering) is kicked off synchronously on the destination screen's mount, stalling JS right as the transition needs it.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q35.</span> Animate height from 0 → 300 with useNativeDriver: true. What problem will you face, and what alternatives?</div>
+        <div class="a">
+          <p><strong>Problem:</strong> <code>height</code> is a layout property — it isn't supported by the native driver at all, and attempting it throws/falls back silently depending on RN version, losing the native-driver benefit.</p>
+          <p><strong>Alternatives:</strong></p>
+          <ul>
+            <li>Animate a <code>scaleY</code> transform on a fixed-height container instead (works with native driver, but clips/scales content rather than reflowing it — fine for solid blocks, wrong for text).</li>
+            <li>Use the RN <code>LayoutAnimation</code> API for the whole transition instead of manually animating one property.</li>
+            <li>Use Reanimated's Layout Animations (<code>Layout</code>, entering/exiting transitions, or an animated <code>useAnimatedStyle</code> for height run on the UI thread) — Reanimated can animate layout properties smoothly because it computes the frame on the UI thread directly, unlike the classic native driver.</li>
+            <li>Fall back to non-native-driven <code>Animated.timing</code> for just the height value if precise, reflowing height animation is required and Reanimated isn't available.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== SECTION 6 ===================== -->
+    <section class="block" id="s6">
+      <div class="sec-head">
+        <span class="sec-num">06</span>
+        <h2>Architecture / Lead-Level</h2>
+      </div>
+      <div class="sec-desc">System-level thinking for staff/lead-track interviews.</div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q36.</span> When would you choose Animated API, LayoutAnimation, Reanimated, or CSS/web-style animation?</div>
+        <div class="a">
+          <ul>
+            <li><strong>Animated API</strong> — simple, isolated transform/opacity animations with no gesture involvement; low complexity, no extra dependency, sufficient for most one-off UI polish.</li>
+            <li><strong>LayoutAnimation</strong> — one-shot layout transitions (item add/remove/reorder) where you want RN to auto-animate the before/after layout diff without writing explicit interpolations.</li>
+            <li><strong>Reanimated</strong> — anything gesture-driven, anything needing complex per-frame logic, anything performance-critical at scale, or animating layout properties smoothly. The default choice for serious production apps today.</li>
+            <li><strong>CSS/web-style</strong> (relevant mainly for React Native Web or Expo web targets) — when the same codebase renders to web and you want to lean on native browser compositing for that target specifically.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q37.</span> How would you design a reusable animation system for a large React Native application?</div>
+        <div class="a">
+          <ul>
+            <li>A shared <strong>motion token</strong> layer — standardized durations, easing curves, and spring configs (e.g. <code>motion.duration.fast</code>, <code>motion.spring.snappy</code>) so every screen feels consistent instead of each engineer picking arbitrary numbers.</li>
+            <li>A small library of <strong>reusable animated primitives</strong> (<code>FadeInView</code>, <code>PressableScale</code>, <code>Collapsible</code>, <code>Sheet</code>) built once on Reanimated, exposed with simple declarative props.</li>
+            <li>Shared <strong>custom hooks</strong> encapsulating common patterns (<code>useFadeIn()</code>, <code>useSwipeToDismiss()</code>) so gesture + shared-value wiring isn't duplicated per feature team.</li>
+            <li>Documented guidelines on when to reach for which tool (tying back to Q36), enforced lightly via code review/lint rather than rigid restriction.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q38.</span> How would you prevent every screen from creating its own animation logic?</div>
+        <div class="a">
+          <p>Treat it as an API design problem: publish an internal <code>@app/motion</code> package exposing the primitives and hooks from Q37 with a small, opinionated surface area — so the path of least resistance for a feature engineer is to compose existing pieces, not hand-roll a new <code>useSharedValue</code> setup. Pair that with lightweight lint rules or PR-template prompts flagging raw Reanimated/Animated usage outside the shared package, and periodic audits to fold recurring one-off patterns back into the library.</p>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q39.</span> How would you handle animations in a media-heavy application?</div>
+        <div class="a">
+          <ul>
+            <li>Keep all animation logic on the UI thread (Reanimated/native driver) since the JS thread is already contended by media decoding, buffering callbacks, and playback state.</li>
+            <li>Avoid animating during heavy media transitions (e.g. video codec swaps) where possible, or reduce animation complexity during those windows.</li>
+            <li>Lazy-load and downsample thumbnails/previews used in animated lists so decode cost doesn't stack with animation cost.</li>
+            <li>Profile GPU load specifically, not just thread load — video rendering, blur effects, and transform animations all compete for the same GPU budget, which thread-level profiling won't show directly.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="qnum">Q40.</span> 10 simultaneous animations, video playback, network requests, a large FlatList — FPS drops. Walk through your debugging and optimization strategy.</div>
+        <div class="a">
+          <p><strong>1. Isolate the layer.</strong> Use Perf Monitor/Flipper to see JS FPS vs UI FPS separately — determines whether the bottleneck is thread contention, GPU/draw cost, or both.</p>
+          <p><strong>2. Audit the animations.</strong> Confirm every one of the 10 is native-driven or Reanimated-worklet-based; any non-native-driven animation running concurrently with network/list work is a prime suspect.</p>
+          <p><strong>3. Audit the list.</strong> Check <code>FlatList</code> tuning (<code>windowSize</code>, <code>getItemLayout</code>, memoized rows) — an unoptimized large list is often the single biggest FPS cost, independent of the animations.</p>
+          <p><strong>4. Audit network handling.</strong> Ensure response parsing/state updates aren't synchronous and large; batch state updates, defer non-critical work with <code>InteractionManager</code>.</p>
+          <p><strong>5. Audit media.</strong> Confirm video decoding isn't competing for the same GPU budget as multiple simultaneous transform/opacity animations; consider reducing concurrent animation count or complexity while video is actively playing.</p>
+          <p><strong>6. Reduce, don't just optimize.</strong> Ask whether all 10 animations genuinely need to run simultaneously — staggering, deferring off-screen ones, or simplifying to opacity-only for less critical elements is often the highest-leverage fix.</p>
+          <div class="tip"><span class="tag">Signal</span><p>This question is really testing whether the candidate reaches for holistic system profiling first, rather than guessing and micro-optimizing one animation in isolation.</p></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="bridge-line"></div>
+  React Native Animations — Interview Field Guide · 40/40
+</footer>
+
+<script>
+  // scroll progress bar
+  const progress = document.getElementById('progress');
+  function updateProgress(){
+    const h = document.documentElement;
+    const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+    progress.style.width = (scrolled || 0) + '%';
+  }
+  document.addEventListener('scroll', updateProgress);
+  updateProgress();
+
+  // active TOC highlighting
+  const sections = document.querySelectorAll('section.block');
+  const tocLinks = document.querySelectorAll('aside.toc a');
+  const navLinks = document.querySelectorAll('header.top nav a');
+  const obs = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      if(entry.isIntersecting){
+        const id = entry.target.id;
+        tocLinks.forEach(a=> a.classList.toggle('active', a.getAttribute('href') === '#'+id));
+        navLinks.forEach(a=> a.classList.toggle('active', a.getAttribute('href') === '#'+id));
+      }
+    });
+  }, { rootMargin: '-15% 0px -70% 0px' });
+  sections.forEach(s=>obs.observe(s));
+</script>
+
+</body>
+</html>
